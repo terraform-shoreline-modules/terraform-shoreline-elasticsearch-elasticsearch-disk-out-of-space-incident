@@ -1,0 +1,182 @@
+{
+  "name": "elasticsearch_disk_out_of_space_incident",
+  "description": "In this type of incident, Elasticsearch, a search and analytics engine, has run out of disk space on a server instance. This can result in various issues such as slow performance, inability to index new data, and even system crashes. It is important to resolve this issue quickly to avoid further disruption to the system.",
+  "params": [
+    {
+      "name": "ELASTICSEARCH_INSTANCE",
+      "value": ""
+    },
+    {
+      "name": "AWS_REGION",
+      "value": ""
+    },
+    {
+      "name": "ELASTICSEARCH_DOMAIN_NAME",
+      "value": ""
+    },
+    {
+      "name": "S3_BUCKET_NAME",
+      "value": ""
+    },
+    {
+      "name": "ELASTICSEARCH_ENDPOINT",
+      "value": ""
+    },
+    {
+      "name": "INDEX_NAME",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Elasticsearch disk out of space incident.\nIn this type of incident, Elasticsearch, a search and analytics engine, has run out of disk space on a server instance. This can result in various issues such as slow performance, inability to index new data, and even system crashes. It is important to resolve this issue quickly to avoid further disruption to the system."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 1. Verify disk usage on the Elasticsearch instance"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `ssh ${ELASTICSEARCH_INSTANCE} df -h`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 2. Identify largest directories on the Elasticsearch instance"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `ssh ${ELASTICSEARCH_INSTANCE} sudo du -h / | sort -rh | head -n 10`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 3. Check Elasticsearch logs for errors related to disk space"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `ssh ${ELASTICSEARCH_INSTANCE} sudo tail -f /var/log/elasticsearch/elasticsearch.log | grep \"disk\"`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 4. Check Elasticsearch cluster health"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -X GET \"${ELASTICSEARCH_ENDPOINT}/_cluster/health?pretty\"`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 5. Check Elasticsearch cluster status"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -X GET \"${ELASTICSEARCH_ENDPOINT}/_cluster/stats?pretty\"`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 6. Check Elasticsearch indices status"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -X GET \"${ELASTICSEARCH_ENDPOINT}/_cat/indices?v\"`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 7. Check Elasticsearch shards status"
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -X GET \"${ELASTICSEARCH_ENDPOINT}/_cat/shards?v\"`"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## The Elasticsearch retention policy is not configured correctly, leading to excessive data storage."
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_elasticsearch_disk_space_check($ELASTICSEARCH_DOMAIN_NAME, $INDEX_NAME)"
+    },
+    {
+      "name": "cell_18",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## The Elasticsearch backups have not been performed as scheduled, leading to insufficient disk space."
+    },
+    {
+      "name": "cell_19",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_elasticsearch_disk_check($AWS_REGION, $ELASTICSEARCH_DOMAIN_NAME, $S3_BUCKET_NAME)"
+    },
+    {
+      "name": "cell_20",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Implement a mechanism to automatically delete old Elasticsearch data that is no longer required."
+    },
+    {
+      "name": "cell_21",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_delete_old_data($INDEX_NAME)"
+    },
+    {
+      "name": "cell_22",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Add more disk space to the Elasticsearch server to prevent future incidents of disk out of space."
+    },
+    {
+      "name": "cell_23",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_create_ebs_volume_and_attach()"
+    }
+  ]
+}
